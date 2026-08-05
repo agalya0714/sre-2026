@@ -1,0 +1,218 @@
+1. Metrics
+A metric is a numerical measurement collected from a system over time that describes its current state or performance.
+
+Examples:
+CPU Utilization
+Memory Usage
+Disk Utilization
+Network Throughput
+API Response Time
+Error Rate
+Availability
+Key Learning
+
+Every SLI is a metric, but not every metric is an SLI.
+Many metrics are useful only for engineers, whereas an SLI is chosen because it reflects the user's experience.
+---------------------------------------------------------------------------------------------------------------------------------------------------
+2. Service Level Indicator (SLI)
+My Answer
+Service Level Indicator is the actual measure of how your service is performing. Examples can include availability of the application, throughput and latency.
+
+Mentor Feedback
+✅ Correct.
+
+Small refinement:
+An SLI is not just any metric.
+It is a carefully selected metric that represents the quality of service experienced by users.
+
+Interview Answer
+A Service Level Indicator (SLI) is a carefully selected metric that measures the quality of service delivered to users. While many metrics are collected, an SLI represents the user's experience, such as availability, request latency, throughput or error rate.
+
+Oracle Example
+Possible Metrics:
+CPU Usage
+Memory Usage
+Network Traffic
+Response Time
+Availability
+
+Possible SLIs:
+✅ Availability
+✅ Response Time
+
+Reason:
+These directly affect what users experience.
+CPU and Memory are useful operational metrics but usually do not directly represent customer experience.
+---------------------------------------------------------------------------------------------------------------------------------------------------
+3. Metrics vs SLIs
+Rule
+Ask yourself:
+"If this metric gets worse, will the customer notice?"
+If YES →
+It is a strong candidate for an SLI.
+If NO →
+It is probably just an operational metric.
+
+Example
+High CPU
+↓
+Users may never notice.
+
+High Latency
+↓
+Users immediately notice.
+
+Therefore:
+Latency is usually an SLI.
+---------------------------------------------------------------------------------------------------------------------------------------------------
+4. Network Traffic vs Rate Limiting
+Question
+Can rate limiting happen because of network traffic?
+
+Discussion
+Yes.
+High traffic may eventually cause:
+HTTP 429 errors
+Increased latency
+Request failures
+
+However.
+Traffic itself is not usually the SLI.
+
+Instead, the SLI becomes:
+Success Rate
+Availability
+HTTP Error Rate
+Request Latency
+because those measure what the customer experiences.
+---------------------------------------------------------------------------------------------------------------------------------------------------
+5. Service Level Objective (SLO)
+My Answer
+SLO is the agreed service metric that we are going to provide to the customer like 99.9% of the time my service will be available.
+
+Mentor Feedback
+Mostly correct.
+
+One refinement:
+An SLO is primarily an internal engineering target, not necessarily a customer promise.
+
+Example
+Engineering Target
+99.95% Availability
+↓
+Customer Promise
+99.9% Availability
+Engineering deliberately sets a stricter objective to provide a safety margin.
+
+Interview Answer
+An SLO is an internal reliability target based on one or more SLIs. Engineering teams use SLOs to guide operational decisions and balance feature delivery with system reliability.
+---------------------------------------------------------------------------------------------------------------------------------------------------
+6. Service Level Agreement (SLA)
+My Answer
+Many SLOs along with the implication if they are not met are documented in the SLA.
+
+Mentor Feedback
+Correct.
+
+One clarification:
+The SLA is the external agreement made with customers.
+
+It usually contains:
+Availability commitment
+Support commitments
+Financial penalties or service credits
+Other contractual obligations
+
+Interview Answer
+An SLA is a contractual commitment made to customers. It is often based on one or more SLOs and defines the consequences if the agreed service levels are not achieved.
+
+Easy Way to Remember
+Term ----------	Meaning
+Metric        	What can I measure?
+SLI	            Which metric represents user experience?
+SLO	            What target should engineering achieve?
+SLA	            What has the business promised customers?
+
+7. Why not 100% Availability?
+My Answer
+Because 100% reliability is almost impossible to achieve. This will hinder progress, make developers conservative, reduce feature releases and increase operational cost.
+
+Mentor Feedback
+Excellent.
+
+Expanded Interview Answer
+Achieving 100% reliability is practically impossible and comes at a very high engineering and business cost. Teams become reluctant to deploy new features, slowing innovation. Instead, SRE promotes balancing reliability with feature delivery through realistic SLOs and the use of an error budget.
+---------------------------------------------------------------------------------------------------------------------------------------------------
+8. Error Budget
+Definition
+An Error Budget is the amount of unreliability that a service is allowed while still meeting its SLO.
+
+Example:
+SLO
+99.9% Availability
+↓
+Allowed Failure
+0.1%
+That 0.1% is the Error Budget.
+
+Why it exists
+It helps engineering teams balance:
+Reliability
+vs
+Innovation
+
+If error budget remains
+↓
+Feature releases continue.
+
+If error budget is exhausted
+↓
+Engineering pauses risky releases and focuses on improving reliability.
+---------------------------------------------------------------------------------------------------------------------------------------------------
+9. Interview Scenario
+Scenario
+The service has already consumed most of its monthly error budget.
+The Product Team wants to release five new features.
+
+My Answer
+Pause feature releases and focus on improving reliability because releasing new features might make the system less stable. Stabilize the SLO first and resume feature releases when sufficient error budget is available.
+
+Mentor Feedback
+Excellent.
+
+Small refinement:
+Instead of saying:
+"The SLA could be affected."
+
+Say:
+"The SLO is at risk of being breached, which increases the risk of violating the SLA."
+
+Remember:
+SLI
+↓
+SLO
+↓
+SLA
+
+Interview Answer:
+I would assess why the error budget has been consumed. If reliability is degrading, I would postpone non-critical feature releases and prioritize stabilization work. Once the service is operating comfortably within its SLOs and sufficient error budget is available, feature deployments can safely resume.
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Key Takeaways
+A metric is any measurable system value.
+An SLI is a user-focused metric.
+An SLO is an internal engineering target.
+An SLA is a customer-facing contractual commitment.
+Not every metric should become an SLI.
+100% reliability is not a practical engineering goal.
+Error Budgets help balance innovation and reliability.
+Always think from the user's perspective when selecting SLIs.
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Interview Cheat Sheet
+Question ------------------    Answer
+What is a Metric?       	     Any measurable value collected from a system.
+What is an SLI?	               A metric that reflects the user's experience.
+What is an SLO?	               An internal engineering reliability target.
+What is an SLA?	               A customer-facing contractual commitment.
+What is an Error Budget?	     The acceptable amount of failure while still meeting the SLO.
+Why not 100% availability?	   It slows innovation, increases cost, and is practically impossible to achieve.
+When should feature releases stop?	When the error budget is nearly exhausted and reliability needs to be restored.
