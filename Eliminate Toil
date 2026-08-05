@@ -1,0 +1,518 @@
+# Google SRE Book Notes
+# Chapter 5 - Eliminating Toil
+
+---
+
+# What is Toil?
+
+## Definition
+
+Toil is manual, repetitive operational work that is necessary to keep a system running but **does not permanently improve the system**.
+
+It is usually:
+
+- Manual
+- Repetitive
+- Frequent
+- Time-consuming
+- Error-prone
+- Automatable
+- Poorly scalable
+
+---
+
+## Important Learning
+
+> Toil is **not useless work**.
+
+It has value because it keeps the system operational.
+
+However,
+
+it **does not create lasting value**.
+
+Example:
+
+Restarting a production service restores availability.
+
+Tomorrow, if the root cause still exists,
+
+the engineer repeats the same task.
+
+Therefore,
+
+it is toil.
+
+---
+
+# Examples of Toil
+
+- Restarting services manually
+- Daily health checks
+- Manual patch verification
+- Preparing daily operational reports
+- Monthly credential rotation
+- Manual deployment validation
+
+---
+
+# Work that is NOT Toil
+
+The following are engineering improvements rather than toil:
+
+- Writing automation scripts
+- Designing monitoring dashboards
+- Building CI/CD pipelines
+- Learning Kubernetes
+- Improving architecture
+- Writing Infrastructure as Code
+
+These activities create permanent improvements.
+
+---
+
+# Automation vs Toil
+
+Automation itself is **not** toil.
+
+Automation is the engineering effort used to remove toil.
+
+Example:
+
+Manual Health Checks
+
+↓
+
+Write Shell Script
+
+↓
+
+Schedule Script
+
+↓
+
+Automatic Email
+
+↓
+
+Toil eliminated
+
+---
+
+# Characteristics of Good Automation
+
+Before automating a task, consider:
+
+- Is the task repetitive?
+- How frequently is it performed?
+- What is the engineering effort required?
+- What is the maintenance overhead?
+- How much testing is required?
+- Will it remove human intervention?
+- Does it improve compliance or security?
+- What is the Return on Investment (ROI)?
+
+Automation should create more value than it costs.
+
+---
+
+# ROI Thinking
+
+Do not automate simply because something can be automated.
+
+Always ask:
+
+> What am I trying to save?
+
+Possible benefits include:
+
+- Engineering time
+- Human error
+- Operational effort
+- Compliance risk
+- Security risk
+- Downtime
+- Customer impact
+
+---
+
+# Example
+
+Task
+
+2 minutes
+
+Once every 6 months
+
+Automation effort
+
+2 months
+
+Decision:
+
+❌ Do NOT automate.
+
+Reason:
+
+Engineering effort outweighs the value gained.
+
+---
+
+# Oracle Example - Credential Rotation
+
+## Situation
+
+Oracle requires monthly IDCS credential rotation.
+
+Approximately:
+
+- 100 customers
+- 5 environments/customer
+- 10 users/environment
+
+≈ 5,000 credentials every month.
+
+---
+
+## Problem
+
+Credential rotation was:
+
+- Manual
+- Repetitive
+- Time consuming
+- Error prone
+- Required every month
+
+A classic example of operational toil.
+
+---
+
+## Solution
+
+Developed a GitLab Pipeline that:
+
+- Processes customers region-wise
+- Retrieves associated users
+- Generates secure random passwords
+- Updates credentials in Vault
+
+Development effort:
+
+≈ One month.
+
+---
+
+## Outcome
+
+- Monthly rotation became unattended
+- Entire process completed within one day
+- Reduced manual effort
+- Reduced human errors
+- Improved security compliance
+
+Estimated Engineering Time Saved:
+
+≈ 336 hours/year
+
+(28 hours × 12 months)
+
+---
+
+# Important Lesson
+
+Automation should be judged by
+
+Value Generated
+
+rather than
+
+Technology Used.
+
+A simple shell script that saves hundreds of hours is better than an unnecessarily complex solution.
+
+---
+
+# Daily Operational Report Scenario
+
+Scenario:
+
+Engineer spends 20 minutes every morning:
+
+- CPU Check
+- Memory Check
+- Disk Check
+- Service Status
+- Prepare Excel Report
+- Email Management
+
+---
+
+## SRE Thought Process
+
+First understand:
+
+Why does this process exist?
+
+The checks are valid because they ensure system health.
+
+The report is useful for visibility and record keeping.
+
+However,
+
+the manual execution is toil.
+
+Solution:
+
+- Shell Script
+- Scheduler (Cron)
+- Automatic Report Generation
+- Automatic Email
+
+Human intervention removed.
+
+---
+
+# Automation Should Also Be Reliable
+
+Question:
+
+What if automation fails every month?
+
+Answer:
+
+Toil is reduced,
+
+but not eliminated.
+
+Reason:
+
+Engineers still spend time fixing automation.
+
+The automation itself has become a new source of toil.
+
+---
+
+## Mature SRE Thinking
+
+Automation should include:
+
+- Monitoring
+- Logging
+- Alerting
+- Retries
+- Error Handling
+- Root Cause Analysis
+
+Reliable automation is the goal.
+
+---
+
+# Interview Questions
+
+## Question 1
+
+### What is Toil?
+
+### My Answer
+
+Any task that is manual, repetitive, time-consuming, error-prone and frequent but doesn't add any value to the system.
+
+### Mentor Feedback
+
+Correct with one refinement.
+
+Instead of saying:
+
+"doesn't add value"
+
+Say:
+
+"It is necessary work that does not permanently improve the system."
+
+---
+
+## Question 2
+
+Which are toil?
+
+1. Writing a Python automation script
+
+2. Running the script manually every morning
+
+3. Designing a monitoring dashboard
+
+4. Restarting the same failed service daily
+
+### Correct Answer
+
+| Activity | Toil |
+|-----------|------|
+| Writing automation | ❌ |
+| Running automation manually | ✅ |
+| Designing dashboard | ❌ |
+| Restarting failed service daily | ✅ |
+
+---
+
+## Question 3
+
+Should a 2-minute task occurring once every six months be automated?
+
+### My Answer
+
+No.
+
+Engineering effort outweighs the value.
+
+### Mentor Feedback
+
+Excellent.
+
+Always evaluate ROI.
+
+---
+
+## Question 4
+
+Give an example of toil from Oracle.
+
+### My Answer
+
+Credential Rotation
+
+- Monthly
+- ~5,000 credentials
+- GitLab Pipeline
+- Vault Integration
+- Automated Password Generation
+
+### Mentor Feedback
+
+Excellent STAR example.
+
+A strong SRE interview story.
+
+---
+
+## Question 5
+
+Daily Operational Report
+
+### My Answer
+
+The report is necessary for monitoring and management visibility.
+
+The manual work qualifies as toil.
+
+A shell script with scheduling and automated email would eliminate the repetitive work.
+
+### Mentor Feedback
+
+Excellent.
+
+Always understand the business purpose before automating.
+
+---
+
+## Question 6
+
+How do you decide whether to automate?
+
+### My Answer
+
+Consider:
+
+- ROI
+- Frequency
+- Development effort
+- Maintenance effort
+- Testing effort
+- Human intervention removed
+- Compliance
+- Security
+
+### Mentor Feedback
+
+Excellent.
+
+This reflects real production engineering thinking.
+
+---
+
+## Question 7
+
+If automation fails every month, is toil eliminated?
+
+### My Answer
+
+No.
+
+Toil has been reduced,
+
+but not eliminated.
+
+The recurring maintenance of the automation itself has become toil.
+
+### Mentor Feedback
+
+Excellent.
+
+Reliable automation is the true objective.
+
+---
+
+# Interview Cheat Sheet
+
+## What is Toil?
+
+Manual, repetitive operational work that keeps systems running but does not permanently improve them.
+
+---
+
+## What should be automated?
+
+Tasks that are:
+
+- Frequent
+- Manual
+- Error-prone
+- Time-consuming
+- Long-term
+- High ROI
+
+---
+
+## What should NOT necessarily be automated?
+
+Rare tasks with poor ROI.
+
+---
+
+## Before Automating
+
+Ask:
+
+- Is it worth automating?
+- What is the ROI?
+- What is the maintenance cost?
+- Will it remove human intervention?
+- Is it secure?
+- Is it reliable?
+
+---
+
+## Golden Principle
+
+> Don't automate because you can.
+
+Automate because it creates lasting engineering value.
+
+---
+
+# Personal Learnings
+
+- Understand the business problem before writing automation.
+- Measure success using engineering hours saved and reliability improvements.
+- Automation should reduce operational burden, not create a new one.
+- A mature SRE focuses on eliminating repetitive manual work while ensuring the automation itself is reliable and maintainable.
