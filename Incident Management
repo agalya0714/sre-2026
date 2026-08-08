@@ -1,0 +1,988 @@
+# Google SRE Book — Incident Management
+
+## 1. What is an Incident?
+
+An incident is an event that causes, or has the potential to cause, degradation of a service.
+
+Examples:
+
+* Application outage
+* Increased API latency
+* Increased error rate
+* Database failure
+* Faulty production deployment
+* Dependency failure
+* Authentication failures
+
+An incident does **not** necessarily mean complete downtime.
+
+A service can technically be available while users experience severe degradation.
+
+Example:
+
+```text
+Availability → 99.99%
+Latency      → 10 seconds
+```
+
+The service is technically available, but the user experience is poor.
+
+### Key principle
+
+> **Service health should be evaluated from the customer's perspective, not only from infrastructure availability.**
+
+---
+
+# 2. Incident Lifecycle
+
+The basic incident lifecycle is:
+
+```text
+Detect
+  ↓
+Assess
+  ↓
+Respond
+  ↓
+Mitigate
+  ↓
+Recover
+  ↓
+Investigate
+  ↓
+Learn
+  ↓
+Prevent recurrence
+```
+
+A more detailed SRE flow:
+
+```text
+Detect incident
+      ↓
+Declare incident
+      ↓
+Assess impact & severity
+      ↓
+Assign / establish roles
+      ↓
+Coordinate response
+      ↓
+Communicate
+      ↓
+Mitigate
+      ↓
+Restore service
+      ↓
+Investigate root cause
+      ↓
+Blameless postmortem
+      ↓
+Corrective / preventive actions
+      ↓
+Validate changes
+      ↓
+Deploy safely
+      ↓
+Monitor
+      ↓
+Close incident + track remaining actions
+```
+
+---
+
+# 3. First Priority During an Incident
+
+The most important principle:
+
+> **Restore service and reduce customer impact before finding the perfect root cause.**
+
+Suppose 40% of customers cannot log in.
+
+The team doesn't yet know whether the problem is:
+
+* Database
+* Authentication service
+* Application
+* Network
+* External dependency
+
+If a rollback can restore service immediately, it may be better to rollback first and investigate the exact cause afterwards.
+
+### Mitigation vs Root Cause
+
+**Mitigation:**
+
+> Reduce or eliminate customer impact.
+
+**Root-cause investigation:**
+
+> Understand why the incident happened and prevent recurrence.
+
+These are different activities.
+
+```text
+Incident
+   ↓
+Customer impact
+   ↓
+Mitigation
+   ↓
+Service restored
+   ↓
+Root-cause investigation
+   ↓
+Prevention
+```
+
+---
+
+# 4. Incident Resolution vs Incident Closure
+
+An incident can be **resolved without being completely closed**.
+
+Example:
+
+```text
+Production failure
+      ↓
+Rollback
+      ↓
+Service restored
+      ↓
+Incident resolved
+      ↓
+RCA / postmortem
+      ↓
+Corrective actions
+      ↓
+Preventive monitoring
+      ↓
+Safe deployment of fix
+      ↓
+Validation
+      ↓
+Incident closed
+```
+
+### Important distinction
+
+> **Incident resolved ≠ problem completely fixed.**
+
+Service restoration ends the immediate customer impact.
+
+The remaining investigation and corrective work still need to be completed and tracked.
+
+---
+
+# 5. Incident Severity
+
+Not every incident requires the same response.
+
+Organizations commonly classify incidents using levels such as:
+
+```text
+P1 / SEV1 → Critical
+P2 / SEV2 → Major
+P3 / SEV3 → Moderate
+P4 / SEV4 → Minor
+```
+
+The exact naming varies between organizations.
+
+Severity should primarily reflect:
+
+* Customer impact
+* Scope of impact
+* Urgency
+* Business impact
+* Duration / potential duration
+
+### Important principle
+
+> **Severity should reflect impact and urgency, not technical complexity.**
+
+A technically complicated internal issue may have low customer impact.
+
+A simple configuration mistake may cause a major outage.
+
+---
+
+# 6. Incident Roles
+
+During a major incident, responsibilities should be clearly separated.
+
+## Incident Commander
+
+The Incident Commander owns and coordinates the overall incident response.
+
+Responsibilities include:
+
+* Assess severity
+* Establish priorities
+* Coordinate responders
+* Assign responsibilities
+* Make operational decisions
+* Ensure mitigation happens
+* Coordinate escalation
+* Ensure communication happens
+* Decide when the incident can be considered resolved
+
+The Incident Commander does not necessarily need to be the person with the deepest technical knowledge.
+
+---
+
+## Technical Lead
+
+The Technical Lead coordinates the technical investigation.
+
+Responsibilities can include:
+
+* Directing engineers
+* Dividing investigation areas
+* Consolidating technical findings
+* Coordinating technical changes
+* Advising the Incident Commander
+
+Example:
+
+```text
+Technical Lead
+   ├── Database investigation
+   ├── Application investigation
+   ├── Infrastructure investigation
+   └── Rollback / mitigation
+```
+
+---
+
+## Communications Lead
+
+The Communications Lead manages stakeholder communication.
+
+They ensure that:
+
+* Updates are timely
+* Information is accurate
+* Customer impact is communicated
+* Management receives consistent information
+* Support/customer-facing teams are informed
+* Updates do not contain unsupported speculation
+
+### Difference between IC and Communications Lead
+
+> **Incident Commander = owns and coordinates the incident.**
+
+> **Communications Lead = owns the information flow to stakeholders.**
+
+The Communications Lead should communicate confirmed information rather than independently deciding technical actions.
+
+---
+
+# 7. Incident Coordination
+
+During an incident, multiple engineers may begin investigating independently.
+
+This can create:
+
+* Duplicate work
+* Conflicting changes
+* Conflicting information
+* Uncontrolled production changes
+* Confusion about ownership
+
+The Incident Commander should establish clear ownership.
+
+Example:
+
+```text
+Incident Commander
+        ↓
+Technical Lead
+   ├── Engineer A → Database
+   ├── Engineer B → Application
+   └── Engineer C → Rollback
+        ↓
+Communications Lead
+        ↓
+Stakeholders
+```
+
+### Key principle
+
+> **Incident management is partly about reducing coordination overhead during a stressful situation.**
+
+---
+
+# 8. Communication During Incidents
+
+Communication is part of incident response.
+
+Stakeholders generally need to know:
+
+* What is happening?
+* Who is affected?
+* What is being done?
+* What has already been completed?
+* What is the current impact?
+* When will the next update be provided?
+
+### Do not speculate
+
+If the database is only a suspected cause, don't say:
+
+> "The database caused the outage."
+
+Instead:
+
+> "The team is investigating elevated API errors and currently suspects a database-related issue. This has not yet been confirmed."
+
+### If there is no reliable ETA
+
+Do not invent one.
+
+Communicate:
+
+* Current impact
+* Actions completed
+* Current investigation/mitigation
+* What is being worked on
+* When the next meaningful update will be provided
+
+### Communication principle
+
+> **Be factual, transparent and timely rather than falsely reassuring.**
+
+---
+
+# 9. Incident Timeline
+
+Maintain a timeline during the incident.
+
+Example:
+
+```text
+10:05 — Deployment started
+10:08 — Error rate increased
+10:10 — Alert triggered
+10:12 — Incident declared
+10:15 — Rollback started
+10:20 — Error rate returned to normal
+10:30 — Incident resolved
+```
+
+A timeline helps the team reconstruct:
+
+> What happened, when it happened, and what actions were taken.
+
+It becomes an important input to the postmortem.
+
+---
+
+# 10. Blameless Incident Management
+
+Suppose an engineer accidentally deploys the wrong configuration.
+
+The question should not be:
+
+> "Who caused the outage?"
+
+Instead ask:
+
+> **"What allowed this mistake to cause a production incident?"**
+
+Possible contributing factors:
+
+* Missing automated validation
+* Weak deployment controls
+* Insufficient testing
+* Missing code review
+* Poor monitoring
+* No automated rollback
+* Inadequate alerting
+
+### Blameless principle
+
+> **People make mistakes. Good systems are designed to detect, limit and recover from those mistakes.**
+
+The goal is to improve the system rather than punish an individual.
+
+---
+
+# 11. Postmortem
+
+After a significant incident, conduct a blameless postmortem.
+
+A postmortem should answer:
+
+### What happened?
+
+Document the timeline.
+
+### What was the impact?
+
+For example:
+
+* Number/percentage of customers affected
+* Duration
+* Error rate
+* Availability impact
+* Business impact
+
+### Why did it happen?
+
+Identify:
+
+* Root cause
+* Contributing factors
+* System/process weaknesses
+
+### How was it mitigated?
+
+Document the actions that restored service.
+
+### What will change?
+
+Create concrete action items.
+
+---
+
+# 12. Root Cause vs Contributing Factors
+
+An incident doesn't always have one isolated cause.
+
+Example:
+
+```text
+Bad deployment
+      ↓
+Application memory leak
+      ↓
+Memory exhaustion
+      ↓
+Requests fail
+```
+
+Possible contributing factors:
+
+* Bug introduced during deployment
+* Testing didn't detect the issue
+* Monitoring wasn't sensitive enough
+* Alerting was missing
+* Rollback wasn't automatic
+
+Therefore:
+
+> **A good postmortem examines the system of contributing factors rather than simply identifying one person or one line of code.**
+
+---
+
+# 13. Postmortem Action Items
+
+Good action items should improve reliability.
+
+Examples:
+
+* Fix the application bug
+* Add automated configuration validation
+* Improve testing
+* Add canary deployments
+* Implement gradual rollouts
+* Add health checks
+* Improve monitoring
+* Add meaningful alerts
+* Implement automated rollback
+* Improve dependency resilience
+* Add failover mechanisms
+
+Avoid vague actions such as:
+
+> "Be more careful next time."
+
+Prefer:
+
+> "Add automated configuration validation to prevent invalid production configuration from being deployed."
+
+---
+
+# 14. Incident Management + Toil
+
+Repeated manual incident recovery can become **toil**.
+
+Example:
+
+```text
+Every 2 weeks
+     ↓
+Service crashes
+     ↓
+Engineer manually restarts service
+     ↓
+30 minutes of work
+```
+
+This is recurring operational overhead.
+
+An SRE should ask:
+
+> **Why does this keep happening, and can we eliminate the manual work?**
+
+Potential improvements:
+
+* Health checks
+* Automatic restart
+* Automated recovery
+* Better monitoring
+* Better alerting
+* Root-cause fix
+
+### Important distinction
+
+Don't only automate the recovery.
+
+If the service keeps failing, investigate why.
+
+The ideal solution is:
+
+```text
+Fix underlying problem
+        +
+Automate safe recovery
+        +
+Improve detection
+```
+
+---
+
+# 15. Incident Management + Monitoring
+
+Chapter 6 and Incident Management connect directly.
+
+### Monitoring detects the problem
+
+Example:
+
+```text
+Error rate ↑
+Latency ↑
+```
+
+### Incident Management responds
+
+```text
+Detect
+  ↓
+Assess
+  ↓
+Declare
+  ↓
+Coordinate
+  ↓
+Mitigate
+  ↓
+Recover
+```
+
+### Postmortem improves monitoring
+
+```text
+Incident
+   ↓
+What did we miss?
+   ↓
+What metric could detect it earlier?
+   ↓
+Add monitoring
+   ↓
+Add alert
+   ↓
+Reduce future impact
+```
+
+---
+
+# 16. Incident Management + SLOs
+
+SLOs help determine the significance of an incident.
+
+Example:
+
+```text
+SLO:
+99.9% availability
+```
+
+If the service suddenly experiences a large increase in errors, the team can assess:
+
+* Current SLO performance
+* Error budget consumption
+* Customer impact
+* Severity
+* Required response
+
+This connects:
+
+```text
+SLO
+ ↓
+Monitoring
+ ↓
+Detection
+ ↓
+Incident
+ ↓
+Mitigation
+ ↓
+Postmortem
+ ↓
+Reliability improvement
+```
+
+---
+
+# 17. Failover Scenario
+
+Suppose the primary region fails.
+
+The secondary region is healthy and can restore service within 10 minutes.
+
+The technical team says the root cause will take two hours to identify.
+
+The correct Incident Commander mindset is:
+
+> **Use the safest effective mitigation that restores service quickly, based on available evidence and risk.**
+
+You don't necessarily need perfect certainty before taking action.
+
+But you should consider:
+
+* Is the secondary region healthy?
+* Is failover supported?
+* Is the procedure known?
+* What is the risk?
+* Can it be rolled back?
+* What is the customer impact of waiting?
+
+### Important principle
+
+> **Don't take uncontrolled risks merely because they are fast, but don't wait for perfect certainty when a well-understood mitigation can safely reduce major customer impact.**
+
+---
+
+# 18. Incident Resolved vs Underlying Problem Fixed
+
+Example:
+
+```text
+Primary region fails
+       ↓
+Failover
+       ↓
+Service restored
+       ↓
+Incident mitigated
+       ↓
+Investigate primary
+       ↓
+Fix root cause
+       ↓
+Validate primary
+       ↓
+Restore traffic safely
+       ↓
+Monitor
+```
+
+The secondary region can remain active temporarily if that is the safer operational state.
+
+Don't switch back simply because the primary has been technically repaired.
+
+Before switching back:
+
+* Validate the fix
+* Confirm primary health
+* Ensure monitoring is working
+* Consider gradual traffic restoration
+* Monitor closely
+
+---
+
+# 19. Root Cause Fixed ≠ Everything Fixed
+
+Suppose the root cause is a connection leak.
+
+The team fixes the code.
+
+That is good, but the SRE should still ask:
+
+* Why wasn't the connection leak caught earlier?
+* Was there a testing gap?
+* Was deployment validation insufficient?
+* Were connection-pool metrics available?
+* Was alerting missing?
+* Could the issue have been detected before saturation?
+* Can recovery be automated?
+* Can the deployment be made safer?
+
+### Key principle
+
+> **Fix the root cause and fix the weaknesses that allowed it to become an incident.**
+
+---
+
+# 20. End-to-End Example
+
+Scenario:
+
+```text
+Error rate:
+0.2% → 30%
+
+Latency:
+200 ms → 8 seconds
+
+Traffic:
+Normal
+
+CPU:
+Normal
+
+Memory:
+Normal
+```
+
+A deployment occurred 15 minutes earlier.
+
+### Step 1 — Detect
+
+Monitoring detects elevated errors and latency.
+
+### Step 2 — Assess
+
+Determine customer impact and severity.
+
+### Step 3 — Declare
+
+Declare a major incident.
+
+### Step 4 — Coordinate
+
+Establish:
+
+* Incident Commander
+* Technical Lead
+* Communications Lead
+
+Assign investigation areas.
+
+### Step 5 — Mitigate
+
+Identify the recent deployment as a likely contributor.
+
+Rollback if that is the safest mitigation.
+
+### Step 6 — Recover
+
+Service returns to normal.
+
+### Step 7 — Failover if required
+
+If the primary region remains unhealthy, route traffic to a healthy secondary region.
+
+### Step 8 — Investigate
+
+Identify the underlying failure.
+
+Example:
+
+> Connection leak in the application.
+
+### Step 9 — Fix
+
+Correct the application code.
+
+### Step 10 — Improve controls
+
+Add:
+
+* Testing
+* Validation
+* Monitoring
+* Alerting
+* Health checks
+* Safer deployment mechanisms
+
+### Step 11 — Postmortem
+
+Conduct a blameless postmortem.
+
+### Step 12 — Validate
+
+Verify the fix works safely.
+
+### Step 13 — Deploy
+
+Deploy through the appropriate production change process.
+
+### Step 14 — Monitor
+
+Confirm:
+
+* Errors normal
+* Latency normal
+* Connection pool healthy
+* No recurrence
+
+### Step 15 — Close
+
+Close the incident once the immediate incident and required follow-up process are appropriately addressed.
+
+---
+
+# Interview Questions & Answers
+
+## Q1. What are the first things you do during a production incident?
+
+> First, assess customer impact and determine severity. Then establish the incident response structure and coordinate the appropriate responders. The immediate priority is to mitigate the impact and restore service, while keeping stakeholders informed.
+
+---
+
+## Q2. What if you don't know the root cause?
+
+> I would not wait for the root cause before attempting mitigation. I would look for the safest effective action that can reduce customer impact and restore service, while continuing the investigation in parallel.
+
+---
+
+## Q3. What is the difference between mitigation and resolution?
+
+> Mitigation reduces or eliminates the immediate customer impact. Resolution means the service has been restored and the incident is no longer actively affecting customers. Root-cause investigation and permanent corrective actions can continue afterwards.
+
+---
+
+## Q4. What is the difference between Incident Commander and Communications Lead?
+
+> The Incident Commander owns and coordinates the overall incident response, while the Communications Lead manages stakeholder communication and ensures accurate, timely updates are delivered.
+
+---
+
+## Q5. What is a blameless postmortem?
+
+> A blameless postmortem focuses on understanding the technical and organizational factors that allowed an incident to happen rather than blaming an individual. The goal is to identify actionable improvements that prevent recurrence.
+
+---
+
+## Q6. Why is communication important during incidents?
+
+> Communication ensures that stakeholders understand the impact, current mitigation efforts and confirmed information. It prevents confusion and avoids engineers being repeatedly interrupted for status updates.
+
+---
+
+## Q7. Should you provide an ETA if you don't know when service will recover?
+
+> No. I would provide the current impact, actions completed, what is currently being investigated or mitigated, and commit to the next meaningful update rather than provide an unreliable ETA.
+
+---
+
+## Q8. How do you prevent repeated incidents from becoming toil?
+
+> Identify recurring manual recovery tasks and automate them where appropriate, while also investigating the underlying cause. The goal is to eliminate the recurring failure and reduce or eliminate the manual operational work.
+
+---
+
+# Your Incident Management Mental Model
+
+```text
+             CUSTOMER IMPACT
+                    ↓
+                 DETECT
+                    ↓
+                 ASSESS
+                    ↓
+                DECLARE
+                    ↓
+              COORDINATE
+             /     |      \
+            /      |       \
+     Technical   Incident   Communication
+       Lead     Commander       Lead
+            \      |       /
+             \     |      /
+                 MITIGATE
+                    ↓
+                 RECOVER
+                    ↓
+              INVESTIGATE
+                    ↓
+             POSTMORTEM
+                    ↓
+           ACTION ITEMS
+                    ↓
+        PREVENT RECURRENCE
+                    ↓
+              VALIDATE
+                    ↓
+               DEPLOY
+                    ↓
+               MONITOR
+                    ↓
+                 CLOSE
+```
+
+# The 5 Principles to Remember
+
+### 1. Restore first, investigate second
+
+> **Customer impact comes first.**
+
+### 2. Don't speculate
+
+> **Communicate facts and clearly label hypotheses.**
+
+### 3. Coordinate, don't create chaos
+
+> **Clear roles and ownership are critical during incidents.**
+
+### 4. Blame the system, not the person
+
+> **Look for process, tooling and system improvements.**
+
+### 5. Don't let incidents become recurring toil
+
+> **Fix the problem, automate repetitive recovery, and improve detection.**
+
+---
+
+# Chapter 4 → 5 → 6 → Incident Management
+
+The concepts we've learned now connect together:
+
+```text
+CHAPTER 4
+SLO / SLI / Error Budget
+        ↓
+Defines what "reliable" means
+        ↓
+CHAPTER 6
+Monitoring
+        ↓
+Detects when reliability is degrading
+        ↓
+INCIDENT MANAGEMENT
+        ↓
+Responds and restores service
+        ↓
+CHAPTER 5
+Toil reduction
+        ↓
+Automate recurring operational work
+        ↓
+POSTMORTEM
+        ↓
+Improve reliability
+        ↓
+Better SLO performance
+```
+
+### Interview-ready summary
+
+> **"My approach to a production incident would be to first assess customer impact and severity, establish clear incident roles, and focus on mitigating the impact and restoring service as quickly and safely as possible. I would keep stakeholders informed with factual updates without speculating about the root cause. Once the service is restored, I would investigate the root cause and contributing factors through a blameless postmortem, create actionable preventive measures, and improve monitoring, automation and deployment controls so that the same class of incident is less likely to recur."**
