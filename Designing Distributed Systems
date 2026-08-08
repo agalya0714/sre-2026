@@ -1,0 +1,810 @@
+# Google SRE Book — Chapter 6
+
+# Monitoring Distributed Systems
+
+## 1. What is Monitoring?
+
+Monitoring is how we understand what a production system is doing without manually inspecting every component.
+
+In a distributed system, there may be:
+
+* Application servers
+* Databases
+* APIs
+* Queues
+* Load balancers
+* External dependencies
+* Infrastructure
+
+Monitoring gives the SRE visibility into:
+
+* Whether the service is working
+* How quickly it responds
+* How much traffic it receives
+* Whether requests are failing
+* Whether the system is approaching its capacity
+
+### Core principle
+
+> Monitoring should help us understand the health of the service and, most importantly, the experience of the user.
+
+---
+
+# 2. The Four Golden Signals
+
+The Four Golden Signals are the most important monitoring concepts from this chapter.
+
+| Signal         | Question it answers                           |
+| -------------- | --------------------------------------------- |
+| **Latency**    | How long does a request take?                 |
+| **Traffic**    | How much demand/work is the system receiving? |
+| **Errors**     | How many requests are failing?                |
+| **Saturation** | How close is the system to its capacity?      |
+
+---
+
+## 2.1 Latency
+
+Latency measures how long a request takes to complete.
+
+Example:
+
+```text
+Normal latency: 200 ms
+Current latency: 5 seconds
+```
+
+The application may technically still be available, but the user experience is severely degraded.
+
+### Important lesson
+
+> Availability alone does not prove that a service is healthy.
+
+A service can be technically "up" while being practically unusable because of high latency.
+
+---
+
+# 2.2 Traffic
+
+Traffic represents the amount of work or demand being received by the service.
+
+Examples:
+
+* Requests per second
+* Transactions per second
+* Messages per second
+* Active users
+
+Example:
+
+```text
+Normal traffic: 1,000 requests/sec
+Current traffic: 10,000 requests/sec
+```
+
+A sudden increase in traffic can explain increases in:
+
+* CPU
+* Latency
+* Errors
+* Saturation
+
+Traffic provides context for interpreting the other signals.
+
+---
+
+# 2.3 Errors
+
+Errors represent unsuccessful requests or operations.
+
+Examples:
+
+* HTTP 500
+* HTTP 503
+* Timeouts
+* Database failures
+* Application exceptions
+
+It is important to consider the **error rate**, rather than simply whether an error exists.
+
+Example:
+
+```text
+10,000 requests/sec
+50 errors/sec
+```
+
+is very different from:
+
+```text
+10,000 requests/sec
+5,000 errors/sec
+```
+
+---
+
+# 2.4 Saturation
+
+Saturation tells us how close the system is to its capacity.
+
+Examples:
+
+* CPU utilization
+* Memory utilization
+* Disk capacity
+* Database connections
+* Thread pools
+* Queue depth
+
+Think of saturation like filling a bottle:
+
+```text
+20% → Plenty of capacity
+70% → Healthy but getting busier
+95% → Approaching capacity
+100% → No additional capacity
+```
+
+### Important lesson
+
+High saturation does not automatically mean customers are currently affected.
+
+It can instead be an **early warning** that the system may soon reach a customer-impacting state.
+
+---
+
+# 3. User Experience vs Infrastructure Metrics
+
+A common mistake is to monitor only infrastructure metrics:
+
+* CPU
+* Memory
+* Disk
+* Network
+
+These are useful, but they don't necessarily tell us whether users are having problems.
+
+A better hierarchy is:
+
+```text
+USER
+  ↓
+User Experience
+  ↓
+Latency / Errors / Availability
+  ↓
+Application Metrics
+  ↓
+Infrastructure Metrics
+  ↓
+CPU / Memory / Disk etc.
+```
+
+Start with:
+
+> "What is the customer experiencing?"
+
+Then investigate downward to determine why.
+
+---
+
+# 4. Monitoring and SLOs
+
+Chapter 6 connects directly with Chapter 4.
+
+Monitoring provides the data needed to determine whether an SLO is being met.
+
+Example:
+
+```text
+Monitoring
+    ↓
+Measure service behavior
+    ↓
+SLI
+    ↓
+Compare against SLO
+    ↓
+Determine Error Budget usage
+    ↓
+Make engineering decisions
+```
+
+Monitoring therefore provides the evidence behind reliability decisions.
+
+---
+
+# 5. Monitoring vs Alerting
+
+Monitoring tells us:
+
+> "Something is happening."
+
+Alerting tells us:
+
+> "Someone needs to take action."
+
+Example:
+
+```text
+CPU = 90%
+```
+
+Monitoring reports the value.
+
+An alert determines whether the condition requires human intervention.
+
+### Important principle
+
+> Not every monitored metric should generate an alert.
+
+---
+
+# 6. Alert Fatigue
+
+If engineers receive hundreds of alerts every day, many of which do not require action, they can begin ignoring alerts.
+
+This is called:
+
+> **Alert fatigue**
+
+The danger is that an important alert can be lost among irrelevant ones.
+
+### Bad alerting strategy
+
+```text
+CPU > 80% → Alert
+Memory > 80% → Alert
+Disk > 80% → Alert
+Latency > 500 ms → Alert
+Network > 70% → Alert
+```
+
+If everything produces an alert, nothing feels important.
+
+---
+
+# 7. What Makes a Good Alert?
+
+A good alert should generally be:
+
+* Actionable
+* Relevant
+* Meaningful
+* Prioritized appropriately
+* Connected to customer impact where possible
+
+Instead of asking:
+
+> "Did a metric cross a threshold?"
+
+Ask:
+
+> "Does someone need to take action now?"
+
+---
+
+# 8. Saturation Does Not Always Mean Page the SRE
+
+Example:
+
+```text
+CPU = 95%
+Latency = Normal
+Errors = Normal
+Traffic = Normal
+```
+
+The system may be approaching its capacity threshold, but there may be no immediate customer impact.
+
+Depending on the system's operational thresholds, this could generate:
+
+* Warning
+* Ticket
+* Investigation
+* Capacity planning activity
+
+rather than necessarily waking up an engineer immediately.
+
+Compare that with:
+
+```text
+CPU = 95%
+Latency ↑
+Errors ↑
+```
+
+Now there is evidence of both:
+
+* Capacity pressure
+* Customer impact
+
+This is much more likely to require urgent intervention.
+
+---
+
+# 9. Alert Thresholds Should Be Based on System Behavior
+
+Thresholds should not blindly be copied across every system.
+
+For example:
+
+```text
+CPU > 80%
+```
+
+is not automatically a problem for every application.
+
+The appropriate threshold depends on:
+
+* Normal operating behavior
+* Application characteristics
+* Capacity
+* Historical observations
+* Customer impact
+* SLOs
+
+Observability should help us determine where a system actually begins to become unhealthy.
+
+---
+
+# 10. Investigating a Production Problem
+
+Consider:
+
+```text
+Traffic: Normal
+CPU: Normal
+Memory: Normal
+Latency: ↑
+Errors: ↑
+```
+
+The infrastructure does not show an obvious problem, but users are experiencing degraded performance.
+
+The next step should be to investigate the **application and dependency layers**.
+
+For example, for a WebLogic application:
+
+* Are internal application calls taking longer?
+* Are downstream API calls slow?
+* Is a database call slow?
+* Is an external dependency responding slowly?
+* Is there an application-level bottleneck?
+
+Example investigation path:
+
+```text
+User experience degraded
+        ↓
+Latency + Errors increased
+        ↓
+Traffic normal
+        ↓
+Infrastructure metrics normal
+        ↓
+Investigate application
+        ↓
+Investigate dependencies
+        ↓
+Database / API / external service
+```
+
+This is an important observability mindset:
+
+> Use the available signals to narrow down the problem instead of randomly checking infrastructure.
+
+---
+
+# 11. Don't Monitor Everything
+
+Having 10,000 available metrics does not mean all 10,000 should appear on the primary dashboard or generate alerts.
+
+More metrics do not automatically mean better observability.
+
+Too much data can:
+
+* Overwhelm engineers
+* Make dashboards difficult to understand
+* Increase operational noise
+* Make important signals harder to identify
+* Increase alert fatigue
+
+---
+
+# 12. Choosing What to Monitor
+
+Start with the Four Golden Signals:
+
+* Latency
+* Traffic
+* Errors
+* Saturation
+
+Then add important:
+
+### Application metrics
+
+* Request processing time
+* Database query latency
+* Queue depth
+* Dependency failures
+
+### Infrastructure metrics
+
+* CPU
+* Memory
+* Disk
+* Network
+* Connection pools
+
+### User experience metrics
+
+Metrics that directly indicate whether customers can successfully use the service.
+
+---
+
+# 13. Averages vs Percentiles
+
+Averages can hide important information.
+
+Consider:
+
+```text
+99 requests → 100 ms
+1 request  → 10 seconds
+```
+
+The average may still appear relatively good.
+
+But one user experienced a very poor response time.
+
+Therefore:
+
+> Average latency does not tell us how latency is distributed across requests.
+
+For latency, percentiles often provide a much better picture.
+
+---
+
+# 14. Important Percentiles
+
+### p50
+
+50% of requests are at or below this latency.
+
+Represents the typical experience.
+
+### p95
+
+95% of requests are at or below this latency.
+
+Shows the experience of the slower 5%.
+
+### p99
+
+99% of requests are at or below this latency.
+
+Shows the experience of the slower 1%.
+
+Example:
+
+```text
+p50 = 100 ms
+p95 = 300 ms
+p99 = 2 sec
+```
+
+The average alone might hide the fact that a significant tail of requests is very slow.
+
+---
+
+# 15. Percentiles vs "Number of 9s"
+
+These concepts should not be confused.
+
+### Percentiles
+
+Used to describe a distribution.
+
+Examples:
+
+```text
+p50
+p95
+p99
+```
+
+Often used for latency.
+
+### Number of 9s
+
+Usually refers to availability/reliability targets.
+
+Examples:
+
+```text
+99%
+99.9%
+99.99%
+```
+
+So:
+
+> **p99 latency is not the same concept as 99.99% availability.**
+
+Both can be used in SLOs, but they describe different things.
+
+---
+
+# 16. SLO Example
+
+Suppose the SLO is:
+
+> 99% of requests must complete within 500 ms.
+
+Average latency:
+
+```text
+200 ms
+```
+
+does **not** prove the SLO is being met.
+
+We need to understand the latency distribution.
+
+For example:
+
+```text
+Average = 200 ms
+p99 = 2 seconds
+```
+
+The average looks healthy, but the percentile-based objective may not be met.
+
+Therefore:
+
+> The metric used to evaluate an SLO must match the SLO definition.
+
+---
+
+# 17. Four Golden Signals — Real Scenario
+
+Suppose:
+
+```text
+Traffic:
+1,000 req/sec → 10,000 req/sec
+
+Latency:
+200 ms → 2 sec
+
+Errors:
+0.1% → 5%
+
+CPU:
+60% → 95%
+```
+
+Interpretation:
+
+### Traffic
+
+10× increase.
+
+This is a major change.
+
+### CPU
+
+Significantly increased, indicating capacity pressure.
+
+### Latency
+
+User experience has degraded.
+
+### Errors
+
+Requests are failing at a significantly higher rate.
+
+Likely hypothesis:
+
+> The sudden traffic increase is overwhelming the service's available capacity.
+
+However, traffic should be treated as a **hypothesis/trigger**, not automatically declared the root cause. Further investigation is required.
+
+---
+
+# 18. Example: High CPU but Healthy Users
+
+```text
+CPU = 95%
+Memory = 60%
+Latency = Normal
+Errors = Normal
+Traffic = Normal
+```
+
+Interpretation:
+
+The system is under high CPU utilization, but there is currently no obvious customer impact.
+
+Possible action:
+
+* Check the defined saturation threshold
+* Investigate the cause
+* Monitor the trend
+* Assess remaining capacity
+* Determine whether intervention is required
+
+The key distinction:
+
+> **A system can be approaching saturation before users experience degradation.**
+
+---
+
+# 19. Example: User Impact Without Infrastructure Saturation
+
+```text
+Traffic = Normal
+CPU = Normal
+Memory = Normal
+Latency = 3 sec
+Errors = 8%
+```
+
+Interpretation:
+
+The infrastructure metrics don't show an obvious bottleneck.
+
+However, users are clearly experiencing problems.
+
+Investigate:
+
+* Application behavior
+* Slow internal calls
+* Downstream APIs
+* Database queries
+* External dependencies
+* Application-level errors
+
+This demonstrates why infrastructure monitoring alone is insufficient.
+
+---
+
+# 20. Oracle Example
+
+In an enterprise environment, infrastructure monitoring can have defined operational thresholds.
+
+For example, if a production environment has a CPU threshold of 90%:
+
+```text
+CPU = 95%
+```
+
+should trigger investigation even if users aren't experiencing degradation yet.
+
+The objective is not simply:
+
+> "React when the system fails."
+
+It is:
+
+> **"Detect conditions that could lead to customer impact and act before failure occurs."**
+
+---
+
+# Interview Cheat Sheet
+
+## Q: What are the Four Golden Signals?
+
+> Latency, Traffic, Errors and Saturation.
+
+---
+
+## Q: Why isn't CPU enough for monitoring?
+
+> CPU tells us about infrastructure utilization but does not necessarily tell us whether customers are experiencing problems. We should start with service-level signals such as latency, traffic and errors, then use infrastructure metrics to investigate underlying causes.
+
+---
+
+## Q: Should every metric generate an alert?
+
+> No. Alerts should be actionable and meaningful. Monitoring can contain many metrics, but paging should be reserved for conditions that require human intervention.
+
+---
+
+## Q: What is alert fatigue?
+
+> Alert fatigue occurs when engineers receive too many alerts, especially non-actionable ones, causing important alerts to be ignored or overlooked.
+
+---
+
+## Q: Why use percentiles instead of averages?
+
+> Averages can hide the tail of a distribution. Percentiles such as p95 and p99 show how slower requests are performing and provide a better representation of user experience for latency-sensitive services.
+
+---
+
+## Q: What does saturation tell us?
+
+> Saturation tells us how close a system is to its capacity limit and can provide an early warning before customer impact occurs.
+
+---
+
+## Q: If infrastructure metrics are normal but latency and errors are high, what do you investigate?
+
+> Application metrics and downstream dependencies such as APIs, databases, queues and external services.
+
+---
+
+# Personal Learnings
+
+1. **Availability alone does not define service health.**
+
+2. **Always think about user experience first.**
+
+3. **The Four Golden Signals provide a strong starting point for service monitoring.**
+
+4. **Not every high infrastructure metric requires an immediate page.**
+
+5. **Monitoring and alerting are different.**
+
+6. **Alerting should be actionable.**
+
+7. **More metrics do not automatically mean better observability.**
+
+8. **Averages can hide poor experiences in the tail of a distribution.**
+
+9. **Percentiles are particularly important for latency.**
+
+10. **Automation, monitoring and alerting themselves need to be reliable enough that they don't become operational toil.**
+
+---
+
+# Chapter 6 Mental Model
+
+```text
+                    USERS
+                      ↓
+              User Experience
+                      ↓
+       ┌──────────────┼──────────────┐
+       ↓              ↓              ↓
+    Latency         Errors         Traffic
+                      +
+                  Saturation
+                      ↓
+              Monitoring Data
+                      ↓
+              Detect Problem
+                      ↓
+             Investigate Cause
+                      ↓
+                Take Action
+                      ↓
+              Improve System
+```
+
+---
+
+# Chapter 6 → Chapter 4 Connection
+
+```text
+Monitoring
+    ↓
+Measure service behavior
+    ↓
+SLI
+    ↓
+Compare with SLO
+    ↓
+Track Error Budget
+    ↓
+Make Engineering Decisions
+```
+
+---
+
+# Interview-Ready Summary
+
+> **"For a production service, I would start with the Four Golden Signals: latency, traffic, errors and saturation. I would prioritize service-level and user-impacting metrics, and use application and infrastructure metrics to investigate underlying causes. I wouldn't alert on every metric because that can create alert fatigue. Alerts should be actionable and tied to conditions that require human intervention. I would also use appropriate percentiles for latency rather than relying only on averages, because averages can hide poor experiences in the tail of the distribution."**
